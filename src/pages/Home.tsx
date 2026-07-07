@@ -67,6 +67,39 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="purpose">
+        <div className="section-inner">
+          <h2 className="section-title">Why Fuffle exists</h2>
+          <p className="purpose-intro">
+            Fuffle is built around a simple idea. Technology should help people
+            connect in real life, not replace it.
+          </p>
+          <div className="purpose-grid">
+            <article className="purpose-card">
+              <h3>The problem</h3>
+              <p>
+                Most feeds are designed to keep you watching, comparing, and
+                scrolling.
+              </p>
+            </article>
+            <article className="purpose-card">
+              <h3>The shift</h3>
+              <p>
+                Fuffle turns the screen into a starting point for small
+                intentional challenges and shared moments.
+              </p>
+            </article>
+            <article className="purpose-card">
+              <h3>The purpose</h3>
+              <p>
+                The goal is not more content. It is more presence, more courage,
+                and more real-world connection.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section className="promise">
         <div className="section-inner">
           <h2 className="section-title">What Fuffle is</h2>
