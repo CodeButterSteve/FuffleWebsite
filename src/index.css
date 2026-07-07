@@ -87,12 +87,15 @@ main {
   letter-spacing: -0.02em;
 }
 
-.brand-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--c-home));
-  box-shadow: 0 0 18px rgba(124, 92, 255, 0.7);
+.brand-logo {
+  display: block;
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+}
+
+.footer-logo {
+  height: 28px;
 }
 
 .nav-links {
@@ -237,6 +240,13 @@ main {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.hero-logo {
+  display: block;
+  width: min(440px, 78vw);
+  height: auto;
+  margin: 0 auto;
 }
 
 .hero-lede {

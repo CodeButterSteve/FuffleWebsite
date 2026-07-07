@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState, type ReactNode } from "react";
+import logo from "../assets/Fuffle_logo_600.png";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -15,8 +16,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <header className="nav">
         <div className="nav-inner">
           <Link to="/" className="brand" aria-label="Fuffle home">
-            <span className="brand-dot" />
-            Fuffle
+            <img src={logo} alt="Fuffle" className="brand-logo" />
           </Link>
 
           <button
@@ -53,8 +53,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="footer-inner">
           <div className="footer-brand">
             <div className="brand">
-              <span className="brand-dot" />
-              Fuffle
+              <img src={logo} alt="Fuffle" className="brand-logo footer-logo" />
             </div>
             <p className="footer-tag">
               Real-world challenges for meaningful connection.

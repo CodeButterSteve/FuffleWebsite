@@ -15,3 +15,6 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .DS_Store
+
+# Local logo staging (originals kept out of the repo)
+_incoming_logos

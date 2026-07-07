@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import heroLogo from "../assets/Fuffle_logo_1200.png";
 
 const features = [
   {
@@ -45,7 +46,9 @@ export default function Home() {
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-inner">
           <span className="pill">Coming soon to iOS</span>
-          <h1 className="hero-title">Fuffle</h1>
+          <h1 className="hero-title">
+            <img src={heroLogo} alt="Fuffle" className="hero-logo" />
+          </h1>
           <p className="hero-lede">
             Real-world challenges for meaningful connection.
           </p>
