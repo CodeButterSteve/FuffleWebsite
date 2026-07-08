@@ -65,9 +65,6 @@ export default function Home() {
               <span className="stat-label">Levels grown</span>
             </div>
           </div>
-          <p className="hero-stats-note">
-            A growing snapshot of the Fuffle community.
-          </p>
         </div>
       </section>
 
@@ -136,15 +133,27 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="safety">
+      <section className="flexible">
         <div className="section-inner">
-          <div className="safety-card">
-            <h2 className="section-title">Stay safe out there</h2>
-            <p>
-              Use your judgment, respect other people, and follow your local
-              laws. Fuffle challenges are meant to be positive and safe. Skip
-              anything that feels wrong for you or your surroundings.
-            </p>
+          <h2 className="section-title">Use it your way</h2>
+          <p className="flexible-intro">
+            Fuffle is designed to fit into real life. Use it with friends, on a
+            walk, at an event, while traveling, or whenever you want a reason to
+            step out of autopilot.
+          </p>
+          <div className="flexible-grid">
+            <article className="flexible-card">
+              <h3>Anywhere</h3>
+              <p>Start a challenge wherever life already has you.</p>
+            </article>
+            <article className="flexible-card">
+              <h3>Anytime</h3>
+              <p>Use Fuffle for a quick spark or a longer adventure.</p>
+            </article>
+            <article className="flexible-card">
+              <h3>Your pace</h3>
+              <p>Choose the moments, people, and challenges that feel right for you.</p>
+            </article>
           </div>
         </div>
       </section>
