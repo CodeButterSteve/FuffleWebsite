@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import heroLogo from "../assets/Fuffle_logo_1200.png";
 
 const features = [
@@ -56,14 +55,19 @@ export default function Home() {
             Fuffle helps you beat loneliness by turning everyday moments into
             in-person challenges. Less scrolling, more real connection.
           </p>
-          <div className="hero-actions">
-            <Link to="/support" className="btn btn-primary">
-              Get support
-            </Link>
-            <Link to="/privacy" className="btn btn-ghost">
-              How we handle data
-            </Link>
+          <div className="hero-stats">
+            <div className="stat-card">
+              <span className="stat-number">1,248</span>
+              <span className="stat-label">Challenges completed</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">386</span>
+              <span className="stat-label">Levels grown</span>
+            </div>
           </div>
+          <p className="hero-stats-note">
+            A growing snapshot of the Fuffle community.
+          </p>
         </div>
       </section>
 
