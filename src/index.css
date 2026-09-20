@@ -520,6 +520,28 @@ main {
   margin: 0;
 }
 
+/* Auth confirmation landing */
+.auth-confirm {
+  max-width: 640px;
+}
+
+.auth-confirm .pill {
+  margin-bottom: 6px;
+}
+
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 26px 0 8px;
+}
+
+.auth-hint {
+  color: var(--muted-2);
+  font-size: 14px;
+  margin: 10px 0 0;
+}
+
 /* Footer */
 .footer {
   border-top: 1px solid var(--border);
