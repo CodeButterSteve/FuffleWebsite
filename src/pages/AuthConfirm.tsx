@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 /**
@@ -7,10 +7,9 @@ import { Link } from "react-router-dom";
  * Supabase confirms the email server side at `/auth/v1/verify`, then redirects
  * here with the new session in the URL fragment. This page never verifies the
  * email itself and never contacts Supabase. It classifies the incoming
- * fragment/query, shows a branded success (or recoverable) state, cleans
- * sensitive values out of the visible URL, and on mobile also offers to reopen
- * Fuffle so the mobile app can consume the same fragment through its existing
- * deep-link callback.
+ * fragment/query once, shows a branded success (or recoverable) state, cleans
+ * sensitive values out of the visible URL, and on mobile also reopens Fuffle
+ * so the app can consume the session through its existing deep-link callback.
  */
 
 /**
@@ -20,7 +19,26 @@ import { Link } from "react-router-dom";
  */
 const APP_DEEP_LINK = "scavenger://auth/confirm";
 
+/**
+ * Only these session parameters are forwarded to the app. Anything else in
+ * the incoming URL is dropped rather than relayed.
+ */
+const HANDOFF_KEYS = [
+  "access_token",
+  "refresh_token",
+  "expires_in",
+  "expires_at",
+  "token_type",
+  "type",
+] as const;
+
 type Phase = "success" | "invalid" | "missing";
+
+type Captured = {
+  phase: Phase;
+  /** Fragment (without the leading #) for the app deep link. In memory only. */
+  handoff: string;
+};
 
 /**
  * Parse both the query string and the URL fragment into a flat key/value map.
@@ -49,87 +67,87 @@ function collectAuthParams(hash: string, search: string): Record<string, string>
   return out;
 }
 
+/**
+ * Read the callback exactly once, before anything can clear it. Called from a
+ * lazy state initializer so the captured values exist on the very first
+ * render and every later closure (timer, button) sees the same data. Nothing
+ * is written to storage and nothing is logged.
+ */
+function captureCallback(): Captured {
+  if (typeof window === "undefined") return { phase: "missing", handoff: "" };
+
+  const { hash, search } = window.location;
+  const params = collectAuthParams(hash, search);
+
+  const hasError =
+    !!params.error || !!params.error_code || !!params.error_description;
+
+  if (!hasError && params.access_token && params.refresh_token) {
+    // Rebuild the fragment from known keys only, in the exact
+    // `key=value&key=value` fragment format the app callback parses.
+    const handoff = HANDOFF_KEYS.filter((k) => !!params[k])
+      .map((k) => `${k}=${encodeURIComponent(params[k])}`)
+      .join("&");
+    return { phase: "success", handoff };
+  }
+  if (hasError) return { phase: "invalid", handoff: "" };
+  if (!hash && !search) return { phase: "missing", handoff: "" };
+  // Unexpected payload: recoverable, never pretend confirmation succeeded.
+  return { phase: "invalid", handoff: "" };
+}
+
 /** Lightweight mobile check: no dependency, and safe if the guess is wrong. */
 function isLikelyMobile(): boolean {
   if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  return /iPhone|iPad|iPod|Android/i.test(ua);
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
 }
 
 export default function AuthConfirm() {
-  const mobile = useMemo(isLikelyMobile, []);
+  const [mobile] = useState(isLikelyMobile);
+  // Lazy initializer: runs before the first render, so the timer and the
+  // button below always close over the real captured session.
+  const [captured] = useState<Captured>(captureCallback);
+  const { phase, handoff } = captured;
 
-  const [phase, setPhase] = useState<Phase>("success");
-  /**
-   * The raw fragment the app deep link needs. Held only in component state
-   * for the brief time between landing and the user tapping Open Fuffle.
-   * Never sent to any server, never logged, never persisted.
-   */
-  const [handoffFragment, setHandoffFragment] = useState<string>("");
-  const autoOpenTried = useRef(false);
+  // Latest handoff for callbacks that outlive a render. Kept in a ref so the
+  // automatic attempt and the manual button can never diverge.
+  const handoffRef = useRef(handoff);
+  handoffRef.current = handoff;
+  const autoOpenFired = useRef(false);
 
+  /** Single source for the deep link used by both automatic and manual opens. */
+  function buildDeepLink(): string {
+    return handoffRef.current
+      ? `${APP_DEEP_LINK}#${handoffRef.current}`
+      : APP_DEEP_LINK;
+  }
+
+  function openFuffle() {
+    window.location.href = buildDeepLink();
+  }
+
+  // Clear sensitive values from the visible URL, but only after they have been
+  // captured into state above.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
     const { hash, search } = window.location;
-    const rawFragment = hash && hash.length > 1 ? hash.slice(1) : "";
-    const params = collectAuthParams(hash, search);
-
-    const hasError =
-      !!params.error || !!params.error_code || !!params.error_description;
-    const accessToken = params.access_token;
-    const refreshToken = params.refresh_token;
-
-    if (!hasError && accessToken && refreshToken) {
-      setHandoffFragment(rawFragment);
-      setPhase("success");
-    } else if (hasError) {
-      setPhase("invalid");
-    } else if (!hash && !search) {
-      setPhase("missing");
-    } else {
-      // Some other unexpected payload; treat as recoverable rather than
-      // pretending confirmation succeeded.
-      setPhase("invalid");
-    }
-
-    // Immediately clean the visible URL so tokens do not sit in browser
-    // history or share sheets. This does not affect the in-memory copy above
-    // that the Open Fuffle handoff still needs.
-    if (hash || search) {
-      try {
-        window.history.replaceState({}, "", window.location.pathname);
-      } catch {
-        // Non-fatal: an old browser without history API is still a usable
-        // success page, just with the fragment visible.
-      }
+    if (!hash && !search) return;
+    try {
+      window.history.replaceState({}, "", window.location.pathname);
+    } catch {
+      // Non-fatal: the page still works with the fragment visible.
     }
   }, []);
 
-  /**
-   * Reopen the Fuffle app with the same tokens Supabase issued, so the mobile
-   * app's confirmation callback can establish the session and continue to
-   * first-time profile setup. Constructing the deep link at click time keeps
-   * the fragment out of anchor hover text and out of link-preview tooling.
-   */
-  function openFuffle() {
-    if (!handoffFragment) {
-      window.location.href = APP_DEEP_LINK;
-      return;
-    }
-    window.location.href = `${APP_DEEP_LINK}#${handoffFragment}`;
-  }
-
   // On mobile after success, try the deep link once automatically after a
-  // short delay so the user does not have to tap twice in the common case.
-  // The explicit button always remains available because browsers may block
-  // automatic custom-scheme navigation.
+  // short delay. The explicit button always remains available because
+  // browsers may block automatic custom-scheme navigation. The fired flag is
+  // set inside the timer, so a cleanup and re-run (Strict Mode in dev) still
+  // schedules exactly one attempt.
   useEffect(() => {
-    if (phase !== "success") return;
-    if (!mobile) return;
-    if (autoOpenTried.current) return;
-    autoOpenTried.current = true;
+    if (phase !== "success" || !mobile) return;
     const t = window.setTimeout(() => {
+      if (autoOpenFired.current) return;
+      autoOpenFired.current = true;
       openFuffle();
     }, 900);
     return () => window.clearTimeout(t);
