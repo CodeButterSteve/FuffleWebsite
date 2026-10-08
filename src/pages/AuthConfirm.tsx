@@ -36,33 +36,23 @@ type Phase = "success" | "invalid" | "missing";
 
 type Captured = {
   phase: Phase;
-  /** Fragment (without the leading #) for the app deep link. In memory only. */
+  /** Encoded query string (no leading ?) for the app deep link. In memory only. */
   handoff: string;
 };
 
 /**
  * Parse both the query string and the URL fragment into a flat key/value map.
- * Mirrors the app's `collectAuthParams` so the two sides classify the same
- * callback identically.
+ * Uses the standard URLSearchParams decoding (the fragment wins on a repeated
+ * key), so the values come out exactly as Supabase sent them.
  */
 function collectAuthParams(hash: string, search: string): Record<string, string> {
   const out: Record<string, string> = {};
-  const segments: string[] = [];
-  if (search && search.length > 1) segments.push(search.slice(1));
-  if (hash && hash.length > 1) segments.push(hash.slice(1));
-  for (const segment of segments) {
-    if (!segment) continue;
-    for (const pair of segment.split("&")) {
-      if (!pair) continue;
-      const eq = pair.indexOf("=");
-      const key = eq >= 0 ? pair.slice(0, eq) : pair;
-      const value = eq >= 0 ? pair.slice(eq + 1) : "";
-      try {
-        out[decodeURIComponent(key)] = decodeURIComponent(value);
-      } catch {
-        out[key] = value;
-      }
-    }
+  for (const raw of [search, hash]) {
+    const body = raw.startsWith("?") || raw.startsWith("#") ? raw.slice(1) : raw;
+    if (!body) continue;
+    new URLSearchParams(body).forEach((value, key) => {
+      out[key] = value;
+    });
   }
   return out;
 }
@@ -83,12 +73,13 @@ function captureCallback(): Captured {
     !!params.error || !!params.error_code || !!params.error_description;
 
   if (!hasError && params.access_token && params.refresh_token) {
-    // Rebuild the fragment from known keys only, in the exact
-    // `key=value&key=value` fragment format the app callback parses.
-    const handoff = HANDOFF_KEYS.filter((k) => !!params[k])
-      .map((k) => `${k}=${encodeURIComponent(params[k])}`)
-      .join("&");
-    return { phase: "success", handoff };
+    // Forward known session keys only. URLSearchParams encodes each value
+    // exactly once, and the app decodes the query string with the same rules.
+    const query = new URLSearchParams();
+    for (const key of HANDOFF_KEYS) {
+      if (params[key]) query.set(key, params[key]);
+    }
+    return { phase: "success", handoff: query.toString() };
   }
   if (hasError) return { phase: "invalid", handoff: "" };
   if (!hash && !search) return { phase: "missing", handoff: "" };
@@ -115,10 +106,14 @@ export default function AuthConfirm() {
   handoffRef.current = handoff;
   const autoOpenFired = useRef(false);
 
-  /** Single source for the deep link used by both automatic and manual opens. */
+  /**
+   * Single source for the deep link used by both automatic and manual opens.
+   * The session travels in the query string, which custom-scheme launches
+   * preserve more reliably than a fragment. The app also accepts a fragment.
+   */
   function buildDeepLink(): string {
     return handoffRef.current
-      ? `${APP_DEEP_LINK}#${handoffRef.current}`
+      ? `${APP_DEEP_LINK}?${handoffRef.current}`
       : APP_DEEP_LINK;
   }
 
